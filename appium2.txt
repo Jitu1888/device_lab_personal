@@ -1,0 +1,145 @@
+#!/bin/bash
+
+# Function to print a header
+print_header() {
+    echo ""
+    echo "======================================"
+    echo "$1"
+    echo "======================================"
+}
+
+add_to_shell_profile() {
+    local line="$1"
+    local file="$2"
+
+    if [ ! -f "$file" ]; then
+        touch "$file"
+    fi
+
+    if ! grep -Fxq "$line" "$file"; then
+        echo "$line" >> "$file"
+        echo "Added to $file: $line"
+    else
+        echo "Already present in $file: $line"
+    fi
+}
+
+# Check for Homebrew
+print_header "Checking for Homebrew"
+if ! command -v brew &> /dev/null; then
+    echo "Homebrew not found. Installing..."
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+else
+    echo "Homebrew is already installed."
+fi
+
+# Check for Node.js
+print_header "Checking for Node.js"
+if ! command -v node &> /dev/null; then
+    echo "Node.js not found. Installing..."
+    brew install node
+else
+    echo "Node.js is already installed. Version: $(node -v)"
+fi
+
+# Set Node path in shell profiles
+NODE_PATH_LINE='export PATH="/opt/homebrew/bin:$PATH"'
+add_to_shell_profile "$NODE_PATH_LINE" "$HOME/.bash_profile"
+add_to_shell_profile "$NODE_PATH_LINE" "$HOME/.zshrc"
+
+# Add ANDROID_HOME and Android SDK paths to shell profiles
+print_header "Setting ANDROID_HOME and Android SDK paths"
+
+# Add ANDROID_HOME and full PATH settings to shell profiles
+print_header "Setting ANDROID_HOME, Android SDK paths, and system PATH"
+
+ANDROID_HOME_LINE='export ANDROID_HOME=$HOME/Library/Android/sdk'
+PLATFORM_TOOLS_LINE='export PATH=$ANDROID_HOME/platform-tools:$PATH'
+TOOLS_LINE='export PATH=$ANDROID_HOME/tools:$PATH'
+EMULATOR_LINE='export PATH=$ANDROID_HOME/emulator:$PATH'
+CMDLINE_TOOLS_LINE='export PATH=$ANDROID_HOME/cmdline-tools/latest/bin:$PATH'
+SYSTEM_PATH_LINE='export PATH="$PATH:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"'
+
+for PROFILE in "$HOME/.bash_profile" "$HOME/.zshrc"; do
+    add_to_shell_profile "$ANDROID_HOME_LINE" "$PROFILE"
+    add_to_shell_profile "$PLATFORM_TOOLS_LINE" "$PROFILE"
+    add_to_shell_profile "$TOOLS_LINE" "$PROFILE"
+    add_to_shell_profile "$EMULATOR_LINE" "$PROFILE"
+    add_to_shell_profile "$CMDLINE_TOOLS_LINE" "$PROFILE"
+    add_to_shell_profile "$SYSTEM_PATH_LINE" "$PROFILE"
+done
+
+
+source ~/.bash_profile
+source ~/.zshrc
+echo $ANDROID_HOME
+
+# Check for Java 11
+print_header "Checking for Java"
+if ! command -v java &> /dev/null; then
+    echo "Java not found. Installing Java 11..."
+    brew install openjdk@11
+    sudo ln -sfn /opt/homebrew/opt/openjdk@11/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk-11.jdk
+else
+    JAVA_VERSION=$(java -version 2>&1 | awk -F '"' '/version/ {print $2}')
+    if [[ "$JAVA_VERSION" == 11* ]]; then
+        echo "Java 11 is already installed. Version: $JAVA_VERSION"
+    else
+        echo "Java is installed, but not version 11. Installing Java 11..."
+        brew install openjdk@11
+        sudo ln -sfn /opt/homebrew/opt/openjdk@11/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk-11.jdk
+    fi
+fi
+
+# Add Java 11 paths to shell profiles
+JAVA_PATH_LINE='export PATH="/opt/homebrew/opt/openjdk@11/bin:$PATH"'
+JAVA_CPPFLAGS_LINE='export CPPFLAGS="-I/opt/homebrew/opt/openjdk@11/include"'
+
+add_to_shell_profile "$JAVA_PATH_LINE" "$HOME/.bash_profile"
+add_to_shell_profile "$JAVA_PATH_LINE" "$HOME/.zshrc"
+add_to_shell_profile "$JAVA_CPPFLAGS_LINE" "$HOME/.bash_profile"
+add_to_shell_profile "$JAVA_CPPFLAGS_LINE" "$HOME/.zshrc"
+
+# Check for Appium 2
+print_header "Checking for Appium"
+if ! command -v appium &> /dev/null; then
+    echo "Appium not found. Installing Appium 2..."
+    npm install -g appium@next
+else
+    APP_VER=$(appium -v)
+    if [[ "$APP_VER" == 2* ]]; then
+        echo "Appium 2 is already installed. Version: $APP_VER"
+    else
+        echo "Appium version is not 2.x. Reinstalling Appium 2..."
+        npm uninstall -g appium
+        npm install -g appium@2.19.0
+    fi
+fi
+
+# Install Appium Drivers
+print_header "Installing Appium Drivers"
+appium driver install uiautomator2
+
+# Install Appium Plugins
+print_header "Installing Appium Plugins"
+appium plugin install --source=npm appium-device-farm
+appium plugin install --source=npm appium-dashboard
+appium plugin install --source=npm appium-gestures-plugin
+appium plugin install --source=npm ai-appium-lens
+appium plugin install --source=npm ocr-click-plugin
+
+# Install MongoDB
+print_header "Installing MongoDB"
+brew tap mongodb/brew
+brew install mongodb-community@7.0
+
+# Start MongoDB as a service
+print_header "Starting MongoDB Service"
+brew services start mongodb/brew/mongodb-community
+
+brew install rethinkdb graphicsmagick zeromq protobuf yasm pkg-config cmake
+brew services start rethinkdb
+
+npm install -g @devicefarmer/stf
+print_header "✅ Need to install ffmpeg and other thing manually"
+print_header "✅ Appium 2 Setup Complete!"
