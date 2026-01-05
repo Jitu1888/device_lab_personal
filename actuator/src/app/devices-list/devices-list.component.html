@@ -1,0 +1,38 @@
+<div class="table-title">
+  <div class="row">
+    <div class="col-sm-6">
+      <h3>Actuator Devices  UG</h3>
+    </div>
+  </div>
+</div>
+<table class = "table table-striped">
+  <thead style="background-color:#C9D5E8">
+  <tr>
+    <th>  </th>
+    <th> User </th>
+    <th> Status </th>
+    <th> Manufacture </th>
+    <th> OS </th>
+    <th> Model </th>
+    <th> UDID </th>
+    <th> Resolution </th>
+    <th> AppiumUrl </th>
+
+  </tr>
+  </thead>
+  <tbody>
+  <tr class="clickable-row"  *ngFor = "let device of device" >
+    <td> <a href={{device.stfUrl}}><img src="https://mobilelab.games24x7.com/images/devices/567f78e3ef8075a38bd2cb067f9ef929.png" height="50"></a></td>
+    <td> {{device.user}} </td>
+    <td> {{device.isFree}} </td>
+    <td> {{device.deviceInformation.manufacture}} </td>
+    <td> {{device.deviceInformation.os}} </td>
+    <td> {{device.deviceInformation.model}} </td>
+    <td> {{device.udid}} </td>
+    <td> {{device.deviceInformation.resolution}} </td>
+    <td> {{device.appiumSession.appiumUrl}}</td>
+
+  </tr>
+  </tbody>
+</table>
+

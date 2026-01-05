@@ -1,0 +1,16 @@
+{
+  "server": {
+    "use-plugins": [
+      "device-farm",
+      "appium-dashboard",
+      "gestures"
+    ],
+    "plugin": {
+      "device-farm": {
+        "skipChromeDownload": true,
+        "platform": "android"
+      }
+    },
+    "port": 4723
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "/getDevicesInfo": {
+    "target": "http://localhost:8085/getDevicesInfo",
+    "secure": false,
+    "logLevel": "debug"
+  }
+}

@@ -1,0 +1,10 @@
+a {
+text-decoration:none;
+color: inherit;
+}
+a:hover{
+  color:#c33;
+}
+tr:hover {
+  background-color: #EBF1FA;
+}
