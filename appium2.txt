@@ -104,7 +104,7 @@ add_to_shell_profile "$JAVA_CPPFLAGS_LINE" "$HOME/.zshrc"
 print_header "Checking for Appium"
 if ! command -v appium &> /dev/null; then
     echo "Appium not found. Installing Appium 2..."
-    npm install -g appium@next
+    npm install -g appium@latest
 else
     APP_VER=$(appium -v)
     if [[ "$APP_VER" == 2* ]]; then
@@ -112,7 +112,7 @@ else
     else
         echo "Appium version is not 2.x. Reinstalling Appium 2..."
         npm uninstall -g appium
-        npm install -g appium@2.19.0
+        npm install -g appium@latest
     fi
 fi
 
