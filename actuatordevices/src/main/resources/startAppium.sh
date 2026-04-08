@@ -13,8 +13,8 @@ elif [ $count -eq 0 ]
    	mv /tmp/appium.log /tmp/appium_backup.log
     echo "appium path --- $(which appium)" >> /tmp/appium.log
     echo "$(date -u) - Starting Appium server during actuator devices" >> /tmp/appium.log
-    echo "CLOUD_USERNAME='username' CLOUD_KEY='apiKey' appium --local-timezone --log-timestamp --allow-insecure chromedriver_autodownload --config $1" >> /tmp/appium.log
-    CLOUD_USERNAME='username' CLOUD_KEY='apiKey' appium server --log-timestamp --allow-insecure chromedriver_autodownload --config $1 >> /tmp/appium.log  2>&1 &
+    echo "CLOUD_USERNAME='username' CLOUD_KEY='apiKey' appium --local-timezone --log-timestamp --allow-insecure=*:chromedriver_autodownload --config $1" >> /tmp/appium.log
+    CLOUD_USERNAME='username' CLOUD_KEY='apiKey' appium server --base-path /wd/hub --log-timestamp --allow-insecure=*:chromedriver_autodownload --plugin-device-farm-enable-authentication --plugin-device-farm-live-streaming --config $1 >> /tmp/appium.log  2>&1 &
     echo "$(date -u) - processID is $!" >> /tmp/appium.log
     echo "$(date -u) - Appium server started" >> /tmp/appium.log
 else
