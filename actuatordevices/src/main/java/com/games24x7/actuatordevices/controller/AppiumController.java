@@ -28,6 +28,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 @Slf4j
 @RestController
+@CrossOrigin(origins = "*")
 @RequestMapping("/appium")
 public class AppiumController {
 
@@ -505,6 +506,8 @@ public class AppiumController {
 			log.info("adb  startAbdLogs failed with exit code '{}' and message '{}'",
 					response.getExitCode(), response.getStdOut());
 		}
+
+
 		//}).start();
 		return new URL(String.format("http://%s:8088/actuator-slave/"+file.getParentFile().toString()
 				+"/"+testCase+".log",StringUtils.getLocalNetworkIP().toString()));
@@ -684,8 +687,6 @@ public class AppiumController {
 			}
 		}).start();
 	
-		
-
 
 		return new URL(String.format("http://%s:8088/actuator-slave/"+file.getParentFile().toString()
 				+"/"+testCase+".log",StringUtils.getLocalNetworkIP().toString()));
@@ -711,21 +712,16 @@ public class AppiumController {
 	
 	@PostMapping("/test")
 	public Callable<String> getFoobar() throws InterruptedException {
-	 return new Callable<String>() {
-        @Override
-        public String call() throws Exception {
-            Thread.sleep(120000); //this will cause a timeout
-            return "foobar";
-        }
-    };
-	
-		
-		
-		
+		return new Callable<String>() {
+			@Override
+			public String call() throws Exception {
+				Thread.sleep(120000); //this will cause a timeout
+				return "foobar";
+			}
+		};
 	}
 
-	
-	
+
 	@PostMapping("/getFatalExceptionOccurs/{udid}")
 	private String getFatalExceptionOccurs(@PathVariable final String udid) {
 		log.info("request '{}' :::  stop log recording", udid);
@@ -757,6 +753,121 @@ public class AppiumController {
 		optional.get().setUniqueNumber(uniqueIdValue);
 		deviceService.updateDevice(optional.get());
 	}
+
+	@PostMapping("/uploadAudio")
+	public String uploadAudio(@RequestParam("file") MultipartFile file) throws Exception {
+		String status = "unsuccessfull";
+		boolean isMP3 = file.getOriginalFilename().toLowerCase().contains(".mp3");
+		
+		if (file.isEmpty()) {
+			throw new Exception("File is empty");
+		}
+		
+		if (!isMP3) {
+			throw new Exception("Only .mp3 files are allowed");
+		}
+		
+		// Create audio directory if it doesn't exist
+		String audioPath = System.getProperty("user.dir") + File.separator + "audio";
+		File audioDir = new File(audioPath);
+		if (!audioDir.exists()) {
+			audioDir.mkdirs();
+			log.info("Created audio directory at: {}", audioPath);
+		}
+		
+		// Save the MP3 file
+		File destinationFile = new File(audioDir, file.getOriginalFilename());
+		FileCopyUtils.copy(file.getInputStream(), new FileOutputStream(destinationFile));
+		
+		log.info("MP3 file '{}' uploaded successfully to: {}", file.getOriginalFilename(), destinationFile.getAbsolutePath());
+		status = "success";
+		
+		return status;
+	}
+
+	@PostMapping("/playAudio/{udid}")
+	public String playAudio(@PathVariable final String udid, @RequestBody String audioRequest) throws Exception {
+		log.info("Play audio request for device: {}", udid);
+		
+		// Parse audio name from request body
+		JSONObject json = new JSONObject(audioRequest);
+		String audioName = json.getString("audioName");
+		
+		if (audioName == null || audioName.isEmpty()) {
+			throw new Exception("Audio name is required");
+		}
+		
+		// Verify device exists
+		Optional<Device> optional = deviceService.findById(udid);
+		if (optional.isEmpty()) {
+			throw new Exception(String.format("Device with UDID %s not found", udid));
+		}
+		
+		if (!optional.get().getDeviceInformation().isAndroid()) {
+			throw new Exception("Audio playback is only supported for Android devices");
+		}
+		
+		// Check if audio file exists locally
+		String audioPath = System.getProperty("user.dir") + File.separator + "audio" + File.separator + audioName;
+		File localAudioFile = new File(audioPath);
+		if (!localAudioFile.exists()) {
+			throw new FileNotFoundException(String.format("Audio file '%s' not found in audio folder", audioName));
+		}
+		
+		log.info("Local audio file found at: {}", localAudioFile.getAbsolutePath());
+		
+		// Push audio file to device
+		log.info("Pushing audio file to device...");
+		String pushCommand = ADBUtilities.getAdbExecutable() + " -s " + udid + " push " + 
+				localAudioFile.getAbsolutePath() + " /sdcard/Download/" + audioName;
+		CommandLineResponse pushResponse = CommandLineExecutor.exec(pushCommand);
+		
+		if (pushResponse.getExitCode() != 0) {
+			throw new Exception(String.format("Failed to push audio file to device: %s", pushResponse.getStdOut()));
+		}
+		log.info("Audio file pushed successfully to device");
+		
+		// Play the audio file
+		String playCommand = "shell \"am start -a android.intent.action.VIEW -d file:///sdcard/Download/" + 
+				audioName + " -t audio/mpeg\"";
+		String playResult = ADBUtilities.runAndroidDeviceCommand(udid, playCommand);
+		
+		log.info("Play audio result: {}", playResult);
+		
+		if (playResult.contains("Error") || playResult.contains("error")) {
+			throw new Exception(String.format("Failed to play audio: %s", playResult));
+		}
+		
+		return String.format("Audio '%s' is now playing on device %s", audioName, udid);
+	}
+
+	@PostMapping("/stopAudio/{udid}")
+	public String stopAudio(@PathVariable final String udid) throws Exception {
+		log.info("Stop audio request for device: {}", udid);
+		
+		// Verify device exists
+		Optional<Device> optional = deviceService.findById(udid);
+		if (optional.isEmpty()) {
+			throw new Exception(String.format("Device with UDID %s not found", udid));
+		}
+		
+		if (!optional.get().getDeviceInformation().isAndroid()) {
+			throw new Exception("Audio playback control is only supported for Android devices");
+		}
+		
+		// Send back button key event to stop audio playback
+		String stopCommand = "shell input keyevent KEYCODE_BACK";
+		String stopResult = ADBUtilities.runAndroidDeviceCommand(udid, stopCommand);
+		
+		log.info("Stop audio result: {}", stopResult);
+		
+		if (stopResult.contains("Error") || stopResult.contains("error")) {
+			throw new Exception(String.format("Failed to stop audio: %s", stopResult));
+		}
+		
+		return String.format("Audio playback stopped on device %s", udid);
+	}
+
 }
 
 
